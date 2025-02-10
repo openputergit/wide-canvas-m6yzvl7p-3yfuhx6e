@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neubrutalism 2D Shooter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap');
+
+        * {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .neu-border {
+            border: 4px solid #000;
+            box-shadow: 4px 4px 0 #000;
+        }
+
+        .character {
+            transition: transform 0.3s;
+        }
+
+        .character.hit {
+            animation: hitEffect 0.5s;
+        }
+
+        .bullet {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #FFE156;
+            border: 2px solid #000;
+            border-radius: 50%;
+            transition: all 0.3s linear;
+        }
+
+        .muzzle-flash {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, #FFE156 0%, #FF4D4D 70%);
+            border: 2px solid #000;
+            border-radius: 50%;
+            animation: flash 0.2s ease-out;
+        }
+
+        .smoke {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #333 0%, transparent 70%);
+            border-radius: 50%;
+            animation: smokeEffect 2s ease-out;
+        }
+
+        .eyebrow {
+            width: 8px;
+            height: 3px;
+            background: black;
+            position: absolute;
+            transform: rotate(-10deg);
+        }
+
+        .eye {
+            width: 8px;
+            height: 8px;
+            background: black;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .mouth {
+            width: 14px;
+            height: 3px;
+            background: black;
+            position: absolute;
+            border-radius: 2px;
+        }
+
+        @keyframes flash {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.5); }
+        }
+
+        @keyframes hitEffect {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.8) rotate(5deg); opacity: 0.5; }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes smokeEffect {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(3); }
+        }
+
+        .health-bar {
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-[#FFE8D6] h-screen w-screen overflow-hidden">
+    <div id="gameContainer" class="relative h-full w-full flex items-center justify-center">
+        <!-- Game Background -->
+        <div class="absolute inset-0 bg-[#A7D7E8] flex items-center justify-center neu-border">
+            <div class="w-full h-40 bg-[#FF8B8B] absolute bottom-0 neu-border"></div>
+        </div>
+
+        <!-- Left Character -->
+        <div id="leftCharacter" class="character absolute left-8 bottom-40 w-20 h-28 z-10">
+            <!-- Health Bar -->
+            <div class="absolute -top-8 w-32 h-6 bg-white rounded-lg neu-border overflow-hidden -left-6">
+                <div id="leftHealth" class="health-bar h-full bg-[#4CAF50]" style="width: 100%"></div>
+            </div>
+            <div class="relative w-full h-full">
+                <div class="absolute w-16 h-16 bg-[#5B86E5] rounded-full top-0 neu-border">
+                    <!-- Eyebrow -->
+                    <div class="eyebrow absolute right-3 top-3"></div>
+                    <!-- Eye -->
+                    <div class="eye absolute right-3 top-5"></div>
+                    <!-- Mouth -->
+                    <div class="mouth absolute left-4 bottom-4"></div>
+                </div>
+                <div class="absolute w-16 h-16 bg-[#3B6AC8] bottom-0 rounded-lg neu-border"></div>
+                <div id="leftGun" class="absolute w-20 h-6 bg-black right-0 top-10 neu-border"></div>
+            </div>
+        </div>
+
+        <!-- Right Character -->
+        <div id="rightCharacter" class="character absolute right-8 bottom-40 w-20 h-28 z-10">
+            <!-- Health Bar -->
+            <div class="absolute -top-8 w-32 h-6 bg-white rounded-lg neu-border overflow-hidden -right-6">
+                <div id="rightHealth" class="health-bar h-full bg-[#4CAF50]" style="width: 100%"></div>
+            </div>
+            <div class="relative w-full h-full">
+                <div class="absolute w-16 h-16 bg-[#FF6B6B] rounded-full top-0 neu-border">
+                    <!-- Eyebrow -->
+                    <div class="eyebrow absolute left-3 top-3"></div>
+                    <!-- Eye -->
+                    <div class="eye absolute left-3 top-5"></div>
+                    <!-- Mouth -->
+                    <div class="mouth absolute left-4 bottom-4"></div>
+                </div>
+                <div class="absolute w-16 h-16 bg-[#E53E3E] bottom-0 rounded-lg neu-border"></div>
+                <div id="rightGun" class="absolute w-20 h-6 bg-black left-0 top-10 rotate-180 neu-border"></div>
+            </div>
+        </div>
+
+        <!-- Score Display -->
+        <div class="absolute top-6 left-1/2 transform -translate-x-1/2 flex gap-12 text-2xl">
+            <div class="bg-white p-4 neu-border">Blue: <span id="leftScore">0</span></div>
+            <div class="bg-white p-4 neu-border">Red: <span id="rightScore">0</span></div>
+        </div>
+
+        <!-- Shoot Buttons -->
+        <button id="leftShoot" class="absolute left-8 bottom-8 px-8 py-4 bg-[#FF4D4D] text-white neu-border hover:translate-y-1 active:translate-y-2 transition-transform">SHOOT</button>
+        <button id="rightShoot" class="absolute right-8 bottom-8 px-8 py-4 bg-[#FF4D4D] text-white neu-border hover:translate-y-1 active:translate-y-2 transition-transform">SHOOT</button>
+
+        <!-- Win Screen -->
+        <div id="winScreen" class="hidden absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center flex-col">
+            <div class="bg-white p-8 neu-border">
+                <h2 id="winMessage" class="text-4xl mb-8 text-center"></h2>
+                <button id="restartGame" class="px-8 py-4 bg-[#4CAF50] text-white neu-border hover:translate-y-1 active:translate-y-2 transition-transform w-full">Play Again</button>
+            </div>
+        </div>
+
+        <!-- Audio Elements -->
+        <audio id="shootSound" preload="auto">
+            <source src="data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjI5LjEwMAAAAAAAAAAAAAAA//tQwAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAeAAAcIAAGBg0NDRQUFBsbISEhKCgoLy81NTU8PDxDQ0pKSlFRUVhYXl5eZWVlbGxycnJ5eYCAgIeHh46OlZWVnJycpKSrq6uysr6+vsXFzMzM09Pb29vi4uLp6fDw8Pf3/v7+//8AAAAATGF2ZgAAAAAAAAAAAAAAAAAAAAAAJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" type="audio/mp3">
+        </audio>
+    </div>
+
+    <script>
+        // Game variables
+        let gameActive = true;
+        let leftHealthValue = 100;
+        let rightHealthValue = 100;
+        let leftHits = 0;
+        let rightHits = 0;
+
+        // DOM elements
+        const leftCharacter = document.getElementById('leftCharacter');
+        const rightCharacter = document.getElementById('rightCharacter');
+        const leftHealth = document.getElementById('leftHealth');
+        const rightHealth = document.getElementById('rightHealth');
+        const leftScore = document.getElementById('leftScore');
+        const rightScore = document.getElementById('rightScore');
+        const winScreen = document.getElementById('winScreen');
+        const winMessage = document.getElementById('winMessage');
+        const restartGame = document.getElementById('restartGame');
+
+        // Shoot buttons
+        document.getElementById('leftShoot').addEventListener('click', () => createBullet(true));
+        document.getElementById('rightShoot').addEventListener('click', () => createBullet(false));
+
+        function createMuzzleFlash(isLeft) {
+            const flash = document.createElement('div');
+            flash.className = 'muzzle-flash';
+            const gun = isLeft ? document.getElementById('leftGun') : document.getElementById('rightGun');
+            gun.appendChild(flash);
+            setTimeout(() => flash.remove(), 200);
+        }
+
+        function createBullet(isLeft) {
+            if (!gameActive) return;
+
+            playShootSound();
+            createMuzzleFlash(isLeft);
+
+            const bullet = document.createElement('div');
+            bullet.className = 'bullet';
+            document.getElementById('gameContainer').appendChild(bullet);
+
+            const startX = isLeft ? 160 : window.innerWidth - 160;
+            const targetX = isLeft ? window.innerWidth - 160 : 160;
+
+            bullet.style.left = `${startX}px`;
+            bullet.style.top = '50%';
+
+            setTimeout(() => {
+                bullet.style.left = `${targetX}px`;
+                setTimeout(() => {
+                    bullet.remove();
+                    handleHit(!isLeft);
+                }, 300);
+            }, 0);
+        }
+
+        function playShootSound() {
+            const sound = document.getElementById('shootSound');
+            sound.currentTime = 0;
+            sound.play().catch(e => console.log("Audio play failed:", e));
+        }
+
+        function createSmoke(character) {
+            const smoke = document.createElement('div');
+            smoke.className = 'smoke';
+            character.appendChild(smoke);
+            setTimeout(() => smoke.remove(), 2000);
+        }
+
+        function handleHit(hitLeft) {
+            if (!gameActive) return;
+
+            if (hitLeft) {
+                leftHealthValue -= 5;
+                leftHealth.style.width = `${leftHealthValue}%`;
+                rightHits++;
+                rightScore.textContent = rightHits;
+                leftCharacter.classList.add('hit');
+                setTimeout(() => leftCharacter.classList.remove('hit'), 500);
+                
+                if (leftHealthValue <= 0) {
+                    createSmoke(leftCharacter);
+                }
+            } else {
+                rightHealthValue -= 5;
+                rightHealth.style.width = `${rightHealthValue}%`;
+                leftHits++;
+                leftScore.textContent = leftHits;
+                rightCharacter.classList.add('hit');
+                setTimeout(() => rightCharacter.classList.remove('hit'), 500);
+                
+                if (rightHealthValue <= 0) {
+                    createSmoke(rightCharacter);
+                }
+            }
+
+            if (leftHits >= 20 || rightHits >= 20) {
+                gameActive = false;
+                winScreen.classList.remove('hidden');
+                winMessage.textContent = `${leftHits >= 20 ? 'Blue' : 'Red'} Player Wins!`;
+            }
+        }
+
+        restartGame.addEventListener('click', () => {
+            gameActive = true;
+            leftHealthValue = 100;
+            rightHealthValue = 100;
+            leftHits = 0;
+            rightHits = 0;
+            leftHealth.style.width = '100%';
+            rightHealth.style.width = '100%';
+            leftScore.textContent = '0';
+            rightScore.textContent = '0';
+            winScreen.classList.add('hidden');
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
